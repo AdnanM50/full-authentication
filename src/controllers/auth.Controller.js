@@ -90,6 +90,59 @@ export const varifyemail = async (req, res) => {
   }
 };
 
+export const forgotpassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Please provide an email" });
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User does not exist" });
+    }
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpiresAt = Date.now() + 10 * 60 * 1000;
+    await user.save();
+    // await sendpasswordresetmail(user.email, resetToken);
+    res.status(200).json({
+      success: "true",
+      message: "Password reset link sent to your email",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ success: "false", message: "Something went wrong" });
+  }
+};
+
+export const resetpassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  try {
+    if (!token || !password) {
+      return res.status(400).json({ message: "Please provide token and password" });
+    }
+    const user = await User.findOne({ resetPasswordToken: token });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid token" });
+    }
+    if (user.resetPasswordExpiresAt < Date.now()) {
+      return res.status(400).json({ message: "Token expired" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    await user.save();
+    res.status(200).json({
+      success: "true",
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ success: "false", message: "Something went wrong" });
+  }
+};
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
