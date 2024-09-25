@@ -179,3 +179,19 @@ export const logout = async (req, res) => {
   res.clearCookie("token").json({ message: "Logged out successfully" });
   
 };
+
+export const profileDetails = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    res.status(200).json({
+      success: "true",
+      user: {
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ success: "false", message: "Something went wrong" });
+  }
+};
